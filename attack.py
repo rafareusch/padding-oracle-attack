@@ -1,8 +1,5 @@
-import urllib.request as urllib2
+import urllib2
 import sys
-
-# doc https://robertheaton.com/2013/07/29/padding-oracle-attack/ RAFAEL
-
 
 TARGET = 'http://crypto-class.appspot.com/po?er='
 #--------------------------------------------------------------
@@ -13,10 +10,10 @@ class PaddingOracle(object):
         target = TARGET + urllib2.quote(q)    # Create query URL
         req = urllib2.Request(target)         # Send HTTP request to server
         try:
-            f = urllib2.urlopen(req)          # Wait for response
-        except (urllib2.HTTPError, e):          
-            print ("We got: %d" % e.code)       # Print response code
-            if (e.code == 404):
+            f = urllib2.urlopen(req)      # Wait for response
+        except urllib2.HTTPError, e:          
+            print "We got: %d" % e.code       # Print response code
+            if e.code == 404:
                 return True # good padding
             return False # bad padding
 
