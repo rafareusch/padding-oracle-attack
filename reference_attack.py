@@ -22,7 +22,7 @@ import urllib2
 import string
 
 TARGET = 'http://crypto-class.appspot.com/po?er='
-TARGET_CIPHERTEXT = 'f20bdba6ff29eed7b046d1df9fb7000058b1ffb4210a580f748b4ac714c001bd4a61044426fb515dad3f21f18aa577c0bdf302936266926ff37dbf7035d5eeb4'
+TARGET_CIPHERTEXT = '539e4b10a3138b00c6757cc0cc7a51dcdac89a6e6bba1d25814eabe872ce63dee397c6f34e5cc8e6ca30d0883ce57ec2508fd3877dad78b7678d271a2f88314f'
 FAST_CHARLIST = ' etaonisrhldcupfmwybgvkqxjzETAONISRHLDCUPFMWYBGVKQXJZ,.!' #string.printable
 
 #--------------------------------------------------------------
@@ -35,13 +35,15 @@ def checkprocess(counter,text):
 def query(q):
     target = TARGET + urllib2.quote(q)    # Create query URL
     req = urllib2.Request(target)         # Send HTTP request to server
+  
     try:
         f = urllib2.urlopen(req)          # Wait for response
     except urllib2.HTTPError, e:
-        #print "We got: %d" % e.code       # Print response code
+        print "We got: %d" % e.code       # Print response code
         if e.code == 404:
             return True # good padding
         return False # bad padding
+    print "star"
 
 def strxor(a, b):     # xor two strings of different lengths
     if len(a) > len(b):
@@ -61,6 +63,7 @@ def decryptblock(prevblock,currentblock,pretext):
             counter=checkprocess(counter,fullguess)
             new_prev_block = strxor(strxor(prevblock,fullguess),chr(pad_len)*16)  # xor the previous block
             new_ct = ''.join(pretext)+new_prev_block+currentblock   # create the new cipher text
+            print fullguess
             if query(new_ct.encode('hex')):
                 print 'found it: %s' % guess
                 pt0[i] = guess
@@ -72,6 +75,7 @@ def decryptblock(prevblock,currentblock,pretext):
                 if guess in set(FAST_CHARLIST):
                     continue
                 fullguess[i] = guess
+                print fullguess
                 counter=checkprocess(counter,fullguess)
                 new_prev_block = strxor(strxor(prevblock,fullguess),chr(pad_len)*16)
                 new_ct = ''.join(pretext)+new_prev_block+currentblock
@@ -86,6 +90,8 @@ def decryptblock(prevblock,currentblock,pretext):
     return ''.join(pt0);
 
 def decrypt(ciphertext):
+    FAST_CHARLIST.__add__('\\t')
+
     blocks = []
     plaintext = []
     for i in range(0,len(ciphertext),16):
@@ -96,10 +102,10 @@ def decrypt(ciphertext):
     plaintext.append(s)
     # middle blocks
     for i in range(1,n-2):
-        s=decryptblock(blocks[i],blocks[i+1],blocks[0:i])
+        s=decryptblock(blocks[i],blocks[i+1],'')
         plaintext.append(s)
     # last block with padding
-    s=decryptblock(blocks[n-2],blocks[n-1],blocks[:n-2])
+    s=decryptblock(blocks[n-2],blocks[n-1],'')
     plaintext.append(s)
     print ''.join(plaintext)
 
