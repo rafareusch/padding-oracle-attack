@@ -1,4 +1,5 @@
-# https://ideone.com/3Rkq0i
+# Rafael Schild Reusch
+# 16-jun/22
 
 import urllib2
 import string
@@ -13,30 +14,30 @@ def query(q):
     try:
         f = urllib2.urlopen(req)        
     except urllib2.HTTPError, e:
-        #print "We got: %d" % e.code    # commented to reduce prints
+        #print "We got: %d" % e.code    # commented to reduce print flood
         if e.code == 404:
-            return True # GOOD padding detected
+            return True # GOOD padding detected 
         return False # BAD padding detected
 
-def strxor(a, b):     # XOR function, gotten from: 
+def strxor(a, b):     # XOR function (gotten via cited author in article)
     if len(a) > len(b):
         return "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a[:len(b)], b)])
     else:
         return "".join([chr(ord(x) ^ ord(y)) for (x, y) in zip(a, b[:len(a)])])
 
 
-def decryptblock(prevblock,currentblock,pretext):
+def decrypt_block(last_block,current_block):
     result_plaintext = ['?' for i in range(16)]  # initialization of the result plaintext
-    for i in range(15,-1,-1):       # this for will loop thru all 16 bytes (a full block), starting from the last one
-        pad_len=16-i
+    for i in range(15,-1,-1):       
+        pad_lenght=16-i
         counter = 0
         attack_fullguess = result_plaintext
         goodpadding_flag = False
         for guess in FAST_CHARLIST: # Proposal from XXXX, faster approach that tries common chars in the plaintext before going full bruteforce mode
             attack_fullguess[i] = guess 
             print attack_fullguess
-            attack_prev_block = strxor(strxor(prevblock,attack_fullguess),chr(pad_len)*16)  
-            attack_ciphertext = ''.join(pretext)+attack_prev_block+currentblock   # create the ciphertext
+            attack_prev_block = strxor(strxor(last_block,attack_fullguess),chr(pad_lenght)*16)  
+            attack_ciphertext = attack_prev_block+current_block   # create the ciphertext
             if query(attack_ciphertext.encode('hex')):# Run the query
                 print 'found it: %s' % guess
                 result_plaintext[i] = guess
@@ -45,12 +46,12 @@ def decryptblock(prevblock,currentblock,pretext):
         if goodpadding_flag == False:  
             fullcharlist = [chr(j) for j in range(256)] # Common approach to the guessing problem
             for guess in fullcharlist:
-                if guess in set(FAST_CHARLIST): # Proposal from XXXX, doens't query the same char already tested before
+                if guess in set(FAST_CHARLIST): # Doens't query the same char already tested before
                     continue
                 attack_fullguess[i] = guess
                 print attack_fullguess
-                attack_prev_block = strxor(strxor(prevblock,attack_fullguess),chr(pad_len)*16) # XOR the previous block with our current guess ||| (c1 XOR p2) objetive = i2 (ultimo byte)
-                attack_ciphertext = ''.join(pretext)+attack_prev_block+currentblock
+                attack_prev_block = strxor(strxor(last_block,attack_fullguess),chr(pad_lenght)*16) # XOR the previous block with our current guess ||| (c1 XOR p2) objetive = i2 (ultimo byte)
+                attack_ciphertext = attack_prev_block+current_block
                 if query(attack_ciphertext.encode('hex')): # Run the query
                     print 'found it: %s' % guess
                     result_plaintext[i] = guess
@@ -61,29 +62,17 @@ def decryptblock(prevblock,currentblock,pretext):
             break 
     return ''.join(result_plaintext);
 
-def decrypt(ciphertext):
-
-    blocks = []
+if __name__ == "__main__":
+    ciphertext = TARGET_CIPHERTEXT.decode('hex')
+    blocks_array = []
     plaintext = []
     for i in range(0,len(ciphertext),16):
-        blocks.append(ciphertext[i:i+16]) # convert ciphertext into an array of blocks
-    n = len(blocks)
+        blocks_array.append(ciphertext[i:i+16]) # convert ciphertext into an array of "cipher" blocks
+    n = len(blocks_array)
 
-    s=decryptblock(blocks[0],blocks[1],'') # First iteration of the padding attack
-    plaintext.append(s) 
-    print "first block ended"
-
-    # decryption of the middle blocks
-    for i in range(1,n-2):
-        s=decryptblock(blocks[i],blocks[i+1],'') 
+    for i in range(0,n-1):
+        s=decrypt_block(blocks_array[i],blocks_array[i+1]) 
         plaintext.append(s)
 
-    # decryption of the last block
-    s=decryptblock(blocks[n-2],blocks[n-1],'')
-    plaintext.append(s)
-
-    # print the decripted plaintext
+    print "DECODED PLAINTEXT:"
     print ''.join(plaintext)
-
-if __name__ == "__main__":
-    print decrypt(TARGET_CIPHERTEXT.decode('hex'))
